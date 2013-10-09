@@ -71,24 +71,24 @@ public class SQLiteCursorLoader extends AbstractCursorLoader {
 	}
 
 	public void insert(String table, String nullColumnHack,
-			ContentValues values,InsertResponse caller) {
+			ContentValues values, InsertResponse caller) {
 		new InsertTask(this,caller).execute(db, table, nullColumnHack, values);
 	}
 
 	public void update(String table, ContentValues values,
-			String whereClause, String[] whereArgs) {
-		new UpdateTask(this).execute(db, table, values, whereClause,
+			String whereClause, String[] whereArgs, UpdateResponse caller) {
+		new UpdateTask(this,caller).execute(db, table, values, whereClause,
 				whereArgs);
 	}
 
 	public void replace(String table, String nullColumnHack,
-			ContentValues values) {
-		new ReplaceTask(this).execute(db, table, nullColumnHack, values);
+			ContentValues values, ReplaceResponse caller) {
+		new ReplaceTask(this,caller).execute(db, table, nullColumnHack, values);
 	}
 
 	public void delete(String table, String whereClause,
-			String[] whereArgs) {
-		new DeleteTask(this).execute(db, table, whereClause, whereArgs);
+			String[] whereArgs, DeleteResponse caller) {
+		new DeleteTask(this,caller).execute(db, table, whereClause, whereArgs);
 	}
 
 	public void execSQL(String sql, Object[] bindArgs) {
@@ -121,66 +121,100 @@ public class SQLiteCursorLoader extends AbstractCursorLoader {
 	}
 
 	public interface InsertResponse{
-		void onInsertTaskExecute(String tableName,long id);
+		void onInsertTaskExecute(String tableName,long rowId);
 	}
 
 	private class UpdateTask extends
-	ContentChangingTask<Object, Void, Void> {
-		UpdateTask(SQLiteCursorLoader loader) {
+	ContentChangingTask<Object, Void, Integer> {
+		private UpdateResponse caller=null;
+		private String tableName=null;
+		UpdateTask(SQLiteCursorLoader loader, UpdateResponse caller) {
 			super(loader);
+			this.caller=caller;
 		}
 
 		@Override
-		protected Void doInBackground(Object... params) {
+		protected Integer doInBackground(Object... params) {
 			SQLiteOpenHelper db=(SQLiteOpenHelper)params[0];
 			String table=(String)params[1];
+			tableName=table;
 			ContentValues values=(ContentValues)params[2];
 			String where=(String)params[3];
 			String[] whereParams=(String[])params[4];
 
-			db.getWritableDatabase()
+			return db.getWritableDatabase()
 			.update(table, values, where, whereParams);
-
-			return(null);
 		}
+		@Override
+		protected void onPostExecute(Integer rowsAffected) {
+			if(caller!=null)caller.onUpdateTaskExecute(tableName,rowsAffected);
+			super.onPostExecute(rowsAffected);
+		}
+	}
+	
+	public interface UpdateResponse{
+		void onUpdateTaskExecute(String tableName,int rowsAffected);
 	}
 
 	private class ReplaceTask extends
-	ContentChangingTask<Object, Void, Void> {
-		ReplaceTask(SQLiteCursorLoader loader) {
+	ContentChangingTask<Object, Void, Long> {
+		private ReplaceResponse caller=null;
+		private String tableName=null;
+		ReplaceTask(SQLiteCursorLoader loader, ReplaceResponse caller) {
 			super(loader);
+			this.caller=caller;
 		}
 
 		@Override
-		protected Void doInBackground(Object... params) {
+		protected Long doInBackground(Object... params) {
 			SQLiteOpenHelper db=(SQLiteOpenHelper)params[0];
 			String table=(String)params[1];
+			tableName=table;
 			String nullColumnHack=(String)params[2];
 			ContentValues values=(ContentValues)params[3];
 
-			db.getWritableDatabase().replace(table, nullColumnHack, values);
+			return db.getWritableDatabase().replace(table, nullColumnHack, values);
 
-			return(null);
 		}
+		@Override
+		protected void onPostExecute(Long rowId) {
+			if(caller!=null)caller.onReplaceTaskExecute(tableName,rowId);
+			super.onPostExecute(rowId);
+		}
+	}
+	
+	public interface ReplaceResponse{
+		void onReplaceTaskExecute(String tableName,long rowId);
 	}
 
 	private class DeleteTask extends
-	ContentChangingTask<Object, Void, Void> {
-		DeleteTask(SQLiteCursorLoader loader) {
+	ContentChangingTask<Object, Void, Integer> {
+		private DeleteResponse caller=null;
+		private String tableName=null;
+		DeleteTask(SQLiteCursorLoader loader, DeleteResponse caller) {
 			super(loader);
+			this.caller=caller;
 		}
 
 		@Override
-		protected Void doInBackground(Object... params) {
+		protected Integer doInBackground(Object... params) {
 			SQLiteOpenHelper db=(SQLiteOpenHelper)params[0];
 			String table=(String)params[1];
+			tableName=table;
 			String where=(String)params[2];
 			String[] whereParams=(String[])params[3];
 
-			db.getWritableDatabase().delete(table, where, whereParams);
-
-			return(null);
+			return db.getWritableDatabase().delete(table, where, whereParams);
 		}
+		@Override
+		protected void onPostExecute(Integer rowsDeleted) {
+			if(caller!=null)caller.onDeleteTaskExecute(tableName,rowsDeleted);
+			super.onPostExecute(rowsDeleted);
+		}
+	}
+	
+	public interface DeleteResponse{
+		void onDeleteTaskExecute(String tableName,int rowsDeleted);
 	}
 
 	private class ExecSQLTask extends
