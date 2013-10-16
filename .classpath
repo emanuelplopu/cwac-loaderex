@@ -6,13 +6,5 @@
 	<classpathentry kind="lib" path="libs/android-support-v4.jar"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
-	<classpathentry kind="lib" path="D:/development/android/platforms/android-14/android.jar" sourcepath="/MasterListener/android-14">
-		<attributes>
-			<attribute name="javadoc_location" value="file:/D:/development/android/docs/reference"/>
-		</attributes>
-		<accessrules>
-			<accessrule kind="nonaccessible" pattern="com/android/internal/**"/>
-		</accessrules>
-	</classpathentry>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
